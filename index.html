@@ -3,49 +3,121 @@
 <head>
 <meta charset="utf-8">
 <title>Benim Mağazam</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-:root{--bg:#faf8f5;--card:#fff;--tx:#1d1b19;--mu:#6b665f;--ac:#d9480f;--bd:#e7e2da;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#faf8f5;--card:#fff;--tx:#1d1b19;--mu:#6b665f;--ac:#d9480f;--bd:#e7e2da}
 @media (prefers-color-scheme:dark){:root{--bg:#171513;--card:#211f1c;--tx:#f2eee8;--mu:#a39d94;--ac:#ff8a4c;--bd:#35312c}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--bg);z-index:5}
-h1{font-size:20px;margin:0}button{font:inherit;cursor:pointer}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--bd)}
+h1{font-size:20px;margin:0}
+button{font:inherit;cursor:pointer}
 .cartbtn{background:var(--ac);color:#fff;border:0;border-radius:999px;padding:8px 14px;font-weight:600}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:16px;max-width:960px;margin:auto}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
 .card img{width:100%;aspect-ratio:1;object-fit:cover;background:var(--bd)}
-.info{padding:10px 12px 12px;display:flex;flex-direction:column;gap:4px;flex:1}
+.info{padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;flex:1}
 .info span{color:var(--mu);font-size:13px;flex:1}
-select{width:100%;padding:6px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;font-size:13px}
-.row{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+select{width:100%;padding:6px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:13px}
+.row{display:flex;justify-content:space-between;align-items:center}
 .add{background:var(--tx);color:var(--bg);border:0;border-radius:8px;padding:6px 10px;font-size:13px}
 #msg{text-align:center;color:var(--mu);padding:40px 16px}
-#drawer{position:fixed;inset:0 0 0 auto;width:min(360px,100%);background:var(--card);border-left:1px solid var(--bd);transform:translateX(100%);transition:transform .25s;z-index:10;display:flex;flex-direction:column;padding:16px}
-#drawer.open{transform:none}#items{flex:1;overflow:auto}
+#drawer{position:fixed;top:0;right:0;bottom:0;width:min(360px,100%);background:var(--card);border-left:1px solid var(--bd);transform:translateX(100%);transition:transform .25s;z-index:10;display:flex;flex-direction:column;padding:16px}
+#drawer.open{transform:none}
+#items{flex:1;overflow:auto}
 .it{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd);gap:8px;font-size:14px}
 .q button{width:26px;height:26px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:6px}
 .pay{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:12px;font-weight:600;width:100%;margin-top:10px}
-.x{background:none;border:0;color:var(--tx);font-size:22px;align-self:flex-end}
+.x{background:none;border:0;color:var(--tx);font-size:24px;align-self:flex-end}
 </style>
 </head>
 <body>
-<header><h1 id="shop"></h1><button class="cartbtn" onclick="tg(true)">Sepet (<span id="n">0</span>)</button></header>
+<header><h1 id="shop"></h1><button class="cartbtn" id="open">Sepet (<span id="n">0</span>)</button></header>
 <div id="msg">Ürünler yükleniyor…</div>
 <div class="grid" id="grid"></div>
-<aside id="drawer"><button class="x" onclick="tg(false)">×</button><h3 style="margin:0 0 8px">Sepetin</h3><div id="items"></div><div class="row"><b>Toplam</b><b id="tot"></b></div><button class="pay" onclick="pay()">Ödemeye geç</button></aside>
+<aside id="drawer">
+<button class="x" id="close">×</button>
+<h3 style="margin:0 0 8px">Sepetin</h3>
+<div id="items"></div>
+<div class="row"><b>Toplam</b><b id="tot"></b></div>
+<button class="pay" id="pay">Ödemeye geç</button>
+</aside>
 <script>
-/* ===== AYARLAR ===== */
-const SHOP_NAME="Benim Mağazam";
-const CURRENCY="$"; /* Printify fiyatları genelde dolardır */
-const CHECKOUT_URL=""; /* Stripe/Shopier ödeme linkin */
-/* =================== */
-let P=[],cart={};
-try{cart=JSON.parse(localStorage.getItem("cart")||"{}")}catch(e){}
-const $=s=>document.getElementById(s),fmt=v=>CURRENCY+v.toFixed(2);
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-document.title=SHOP_NAME;$("shop").textContent=SHOP_NAME;
-fetch("/api/products").then(r=>r.json()).then(d=>{
- if(!Array.isArray(d)||!d.length){$("msg").textContent="Henüz ürün yok. Printify'da ürün yayınla.";return}
- P=d;$("msg").remove();
- $("grid").innerHTML=P.map((p,i)=>`<div class="card"><img src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy"><div class="info"><b>${esc(p.title)}</b><span>${esc(p.desc)}</span>${p.variants.length>1?`<select id="v${i}">${p.variants.map((v,j)=>`<option value="${j}">${esc(v.title)} - ${fmt(v.price)}</option>`).join("")}</select>`:""}<div class="row"><b>${fmt(p.price)}</b><button class="add" onclick="add(${i})">Ekle</button></div>
+window.onerror=function(m,s,l){var e=document.getElementById("msg");if(e){e.style.display="block";e.style.color="red";e.textContent="Hata: "+m+" (satır "+l+")";}};
+</script>
+<script>
+var SHOP_NAME="Benim Mağazam";
+var CURRENCY="$";
+var CHECKOUT_URL="";
+var P=[],cart={};
+try{cart=JSON.parse(localStorage.getItem("cart")||"{}");}catch(e){}
+function $(i){return document.getElementById(i);}
+function fmt(v){return CURRENCY+Number(v).toFixed(2);}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function save(){try{localStorage.setItem("cart",JSON.stringify(cart));}catch(e){}}
+$("shop").textContent=SHOP_NAME;
+
+function card(p,i){
+  var sel="";
+  if(p.variants.length>1){
+    sel='<select id="v'+i+'">';
+    for(var j=0;j<p.variants.length;j++){
+      var v=p.variants[j];
+      sel+='<option value="'+j+'">'+esc(v.title)+" - "+fmt(v.price)+"</option>";
+    }
+    sel+="</select>";
+  }
+  return '<div class="card"><img src="'+esc(p.image)+'" alt="'+esc(p.title)+'">'
+    +'<div class="info"><b>'+esc(p.title)+'</b><span>'+esc(p.desc)+'</span>'+sel
+    +'<div class="row"><b>'+fmt(p.price)+'</b><button class="add" data-i="'+i+'">Ekle</button></div></div></div>';
+}
+
+fetch("/api/products").then(function(r){return r.json();}).then(function(d){
+  if(!d.length){$("msg").textContent="Henüz ürün yok.";return;}
+  P=d;
+  $("msg").style.display="none";
+  $("grid").innerHTML=P.map(card).join("");
+}).catch(function(e){$("msg").textContent="Ürünler yüklenemedi: "+e;});
+
+function add(i){
+  var p=P[i],s=$("v"+i);
+  var v=p.variants[s?s.value:0]||{id:0,title:"",price:p.price};
+  var k=p.id+"|"+v.id;
+  if(!cart[k]){cart[k]={title:p.title,vt:v.title,price:v.price,q:0};}
+  cart[k].q++;
+  save();draw();$("drawer").className="open";
+}
+function chg(k,d){
+  cart[k].q+=d;
+  if(cart[k].q<=0){delete cart[k];}
+  save();draw();
+}
+function draw(){
+  var t=0,c=0,h="";
+  for(var k in cart){
+    var x=cart[k];
+    t+=x.price*x.q;c+=x.q;
+    h+='<div class="it"><span>'+esc(x.title)+'<br><small>'+esc(x.vt)+'</small></span>'
+      +'<span class="q"><button data-k="'+esc(k)+'" data-d="-1">-</button> '+x.q
+      +' <button data-k="'+esc(k)+'" data-d="1">+</button></span><b>'+fmt(x.price*x.q)+'</b></div>';
+  }
+  $("items").innerHTML=h||'<p style="color:var(--mu)">Sepetin boş.</p>';
+  $("tot").textContent=fmt(t);
+  $("n").textContent=c;
+}
+document.addEventListener("click",function(e){
+  var t=e.target;
+  if(t.getAttribute("data-i")!==null){add(Number(t.getAttribute("data-i")));}
+  if(t.getAttribute("data-k")!==null){chg(t.getAttribute("data-k"),Number(t.getAttribute("data-d")));}
+});
+$("open").onclick=function(){$("drawer").className="open";};
+$("close").onclick=function(){$("drawer").className="";};
+$("pay").onclick=function(){
+  if(!Object.keys(cart).length){return;}
+  if(CHECKOUT_URL){location.href=CHECKOUT_URL;}
+  else{alert("CHECKOUT_URL alanına ödeme linkini ekle.");}
+};
+draw();
+</script>
+</body>
+</html>
