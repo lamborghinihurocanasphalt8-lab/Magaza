@@ -1,10 +1,15 @@
 export default async function handler(req, res) {
   const token = process.env.PRINTIFY_TOKEN;
-  const shop = process.env.PRINTIFY_SHOP_ID;
+  const h = { Authorization: `Bearer ${token}` };
   try {
+    let shop = process.env.PRINTIFY_SHOP_ID;
+    if (!shop) {
+      const s = await (await fetch("https://api.printify.com/v1/shops.json", { headers: h })).json();
+      shop = s[0] && s[0].id;
+    }
     const r = await fetch(
       `https://api.printify.com/v1/shops/${shop}/products.json?limit=50`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: h }
     );
     const d = await r.json();
     const items = (d.data || [])
