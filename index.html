@@ -191,4 +191,119 @@ function renderDetail(){
     +'<div class="price">'+fmt(v.price)+'</div>';
   for(var oi=0;oi<p.options.length;oi++){
     var o=p.options[oi],chosen="",chips="";
-    for(var j=0;j
+    for(var j=0;j<o.values.length;j++){
+      var val=o.values[j],on=(sel[oi]===val.id);
+      if(on){chosen=val.title;}
+      var cls=(val.color?'chip sw':'chip')+(on?' on':'')+(avail(p,oi,val.id)?'':' off');
+      var st=val.color?' style="background:'+esc(val.color)+'"':'';
+      chips+='<button class="'+cls+'"'+st+' title="'+esc(val.title)+'" data-o="'+oi+'" data-val="'+val.id+'">'+(val.color?'':esc(val.title))+'</button>';
+    }
+    h+='<div class="opt"><b>'+(o.name?esc(o.name)+': ':'')+esc(chosen)+'</b><div class="chips">'+chips+'</div></div>';
+  }
+  h+='<button class="big" id="addbtn">'+tx("add")+'</button>'
+    +(p.desc?'<div class="desc">'+esc(p.desc)+'</div>':'')
+    +'</div></div>';
+  $("detail").innerHTML=h;
+}
+function route(){
+  var h=location.hash.replace("#","");
+  if(h.indexOf("u-")===0){
+    var id=h.slice(2),f=null;
+    for(var i=0;i<P.length;i++){if(P[i].id===id){f=P[i];}}
+    if(f){
+      if(cur!==f){cur=f;initSel(f);mainIdx=0;}
+      renderDetail();
+      $("detail").style.display="block";
+      $("grid").style.display="none";
+      window.scrollTo(0,0);
+      return;
+    }
+  }
+  cur=null;
+  $("detail").style.display="none";
+  $("grid").style.display="grid";
+}
+window.addEventListener("hashchange",route);
+
+function applyLang(){
+  document.documentElement.lang=L;
+  var els=document.querySelectorAll("[data-i]");
+  for(var i=0;i<els.length;i++){els[i].textContent=tx(els[i].getAttribute("data-i"));}
+  $("ltr").className=(L==="tr")?"lg on":"lg";
+  $("len").className=(L==="en")?"lg on":"lg";
+  if(P.length){$("grid").innerHTML=P.map(card).join("");}
+  if(cur){renderDetail();}
+  draw();
+}
+function setLang(l){
+  L=l;
+  try{localStorage.setItem("lang",l);}catch(e){}
+  applyLang();
+}
+$("ltr").onclick=function(){setLang("tr");};
+$("len").onclick=function(){setLang("en");};
+
+fetch("/api/products").then(function(r){return r.json();}).then(function(d){
+  if(!d.length){$("msg").textContent=tx("none");return;}
+  P=d.map(norm);
+  $("msg").style.display="none";
+  applyLang();
+  route();
+}).catch(function(e){$("msg").textContent=tx("fail")+e;});
+
+function addCur(){
+  var p=cur,v=selVariant(p)||p.variants[0];
+  var k=p.id+"|"+v.id;
+  if(!cart[k]){cart[k]={title:p.title,vt:v.title,price:v.price,q:0};}
+  cart[k].q++;
+  save();draw();$("drawer").className="open";
+}
+function chg(k,d){
+  cart[k].q+=d;
+  if(cart[k].q<=0){delete cart[k];}
+  save();draw();
+}
+function draw(){
+  var total=0,c=0,h="";
+  for(var k in cart){
+    var x=cart[k];
+    total+=x.price*x.q;c+=x.q;
+    h+='<div class="it"><span>'+esc(x.title)+'<br><small>'+esc(x.vt)+'</small></span>'
+      +'<span class="q"><button data-k="'+esc(k)+'" data-d="-1">-</button> '+x.q
+      +' <button data-k="'+esc(k)+'" data-d="1">+</button></span><b>'+fmt(x.price*x.q)+'</b></div>';
+  }
+  $("items").innerHTML=h||'<p style="color:var(--mu)">'+tx("empty")+'</p>';
+  $("tot").textContent=fmt(total);
+  $("n").textContent=c;
+}
+document.addEventListener("click",function(e){
+  var t=e.target;
+  var c=t.closest?t.closest(".card"):null;
+  if(c){location.hash="u-"+c.getAttribute("data-id");return;}
+  if(t.id==="back"){
+    if(history.length>1){history.back();}else{location.hash="";}
+    return;
+  }
+  if(t.id==="addbtn"){addCur();return;}
+  if(t.getAttribute("data-val")!==null){
+    pick(cur,Number(t.getAttribute("data-o")),Number(t.getAttribute("data-val")));
+    mainIdx=0;renderDetail();return;
+  }
+  if(t.getAttribute("data-t")!==null){
+    mainIdx=Number(t.getAttribute("data-t"));renderDetail();return;
+  }
+  if(t.getAttribute("data-k")!==null){
+    chg(t.getAttribute("data-k"),Number(t.getAttribute("data-d")));
+  }
+});
+$("open").onclick=function(){$("drawer").className="open";};
+$("close").onclick=function(){$("drawer").className="";};
+$("pay").onclick=function(){
+  if(!Object.keys(cart).length){return;}
+  if(CHECKOUT_URL){location.href=CHECKOUT_URL;}
+  else{alert(tx("alertPay"));}
+};
+applyLang();
+</script>
+</body>
+</html>
